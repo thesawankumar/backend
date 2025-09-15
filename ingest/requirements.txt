@@ -1,0 +1,6 @@
+sentence-transformers
+feedparser
+newspaper3k
+requests
+tqdm
+torch
