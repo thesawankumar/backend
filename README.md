@@ -19,7 +19,7 @@ backend/
 ├──ingest
 ├── scripts/
 │ └── create_qdrant_collection.sh # Script to init collection
-├──server.js  #Entry point
+├──server.js #Entry point
 ├── .env # Environment variables
 ├── package.json
 └── README.md
@@ -27,7 +27,7 @@ backend/
 ⚙️ Setup
 
 1. Clone repo
-   git clone https://github.com/your-username/backend.git
+   git clone https://github.com/thesawankumar/backend.git
    cd ai-chat-backend
 
 2. Install dependencies
@@ -68,13 +68,8 @@ bash scripts/create_qdrant_collection.sh
 
 📡 API Endpoints
 
-1. Health Check
-   GET /health
-
-✅ Returns { status: "ok" }
-
-2. Send Message
-   POST /chat
+1. Send Message
+   POST /api/chat
    Content-Type: application/json
    {
    "sessionId": "abc123",
@@ -83,7 +78,7 @@ bash scripts/create_qdrant_collection.sh
 
 ➡️ Returns AI response and updates conversation history in Redis.
 
-3. Get Session History
+2. Get Session History
    GET /sessions/:id
 
 ➡️ Returns chat history for a session.
