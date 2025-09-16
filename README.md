@@ -57,7 +57,7 @@ SESSION_TTL_SECONDS=604800
 
 # Frontend
 
-FRONTEND_ORIGIN=http://localhost:5173
+FRONTEND_ORIGIN=https://magnificent-chaja-eb8e60.netlify.app/
 
 ▶️ Running the Backend
 Start server
