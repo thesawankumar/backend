@@ -9,8 +9,15 @@ const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
-
+const io = new Server(server, {
+    cors: {
+        origin: 'https://elegant-daifuku-212a83.netlify.app', // remove trailing slash
+        credentials: true
+    }
+});
+app.use(cors({
+    // if you send cookies or auth headers
+}));
 app.use(express.json());
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }));
 
