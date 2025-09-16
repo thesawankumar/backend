@@ -1,12 +1,14 @@
 // ingest.js
+// ingest.js (CommonJS)
 const axios = require("axios");
 const RSSParser = require("rss-parser");
 const dotenv = require("dotenv");
 const { v4: uuidv4 } = require("uuid");
-const fetch = require("node-fetch");
 const cheerio = require("cheerio");
-
 dotenv.config();
+
+// Dynamic fetch for Node 18+
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const QDRANT_URL = process.env.QDRANT_URL || "http://localhost:6333";
 const COLLECTION = process.env.QDRANT_COLLECTION || "news_passages";
@@ -14,12 +16,34 @@ const EMBED_PROVIDER = process.env.EMBED_PROVIDER || "huggingface"; // "openai" 
 const BATCH_SIZE = 64;
 
 const FEEDS = [
-    "http://feeds.reuters.com/reuters/topNews",
-    "http://feeds.bbci.co.uk/news/rss.xml",
+    // Global general news
+    "https://feeds.reuters.com/reuters/topNews",
+    "https://feeds.bbci.co.uk/news/rss.xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+    "https://www.theguardian.com/world/rss",
+    "https://www.cnn.com/rss/edition.rss",
+
+    // Technology
+    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+    "https://feeds.arstechnica.com/arstechnica/index",
+    "https://www.theverge.com/rss/index.xml",
+
+    // Sports
+    "https://www.espn.com/espn/rss/news",
+    "https://feeds.bbci.co.uk/sport/rss.xml",
+
+    // Business
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+    "https://www.bloomberg.com/feed/podcast/etf-report.xml",
+
+    // Science / Health
+    "https://www.sciencemag.org/rss/news_current.xml",
+    "https://www.nature.com/subjects/health/rss.xml",
 ];
 
-// ========== EMBEDDING ==========
+
+// ================= EMBEDDING =================
 async function getEmbedding(text) {
     try {
         const r = await axios.post(
@@ -34,7 +58,7 @@ async function getEmbedding(text) {
     }
 }
 
-// ========== HELPERS ==========
+// ================= HELPERS =================
 function chunkText(text, maxWords = 200, overlap = 40) {
     const words = text.split(/\s+/);
     const chunks = [];
@@ -48,9 +72,7 @@ function chunkText(text, maxWords = 200, overlap = 40) {
 
 async function ensureCollection(vecSize = 384) {
     const url = `${QDRANT_URL}/collections/${COLLECTION}`;
-    const data = {
-        vectors: { size: vecSize, distance: "Cosine" },
-    };
+    const data = { vectors: { size: vecSize, distance: "Cosine" } };
     try {
         const r = await axios.put(url, data);
         console.log("✅ Collection ensured:", r.status, r.data?.status || r.data);
@@ -70,21 +92,13 @@ async function upsertBatch(points) {
     }
 }
 
-// Extract article text with cheerio
+// Extract article text
 async function extractArticleText(url) {
     try {
         const res = await fetch(url, { timeout: 20000 });
         const html = await res.text();
         const $ = cheerio.load(html);
-
-        // crude extraction: all <p> text
-        const text = $("p")
-            .map((_, el) => $(el).text())
-            .get()
-            .join(" ")
-            .replace(/\s+/g, " ")
-            .trim();
-
+        const text = $("p").map((_, el) => $(el).text()).get().join(" ").replace(/\s+/g, " ").trim();
         return text;
     } catch (err) {
         console.error("⚠️ Failed to extract article:", url, err.message);
@@ -92,11 +106,11 @@ async function extractArticleText(url) {
     }
 }
 
-// ========== MAIN ==========
+// ================= MAIN =================
 async function main() {
     console.log("🚀 Starting ingestion...");
 
-    // Ensure collection (vector size depends on provider)
+    // Vector size: 1536 for OpenAI, 384 for HuggingFace
     const vecSize = EMBED_PROVIDER === "openai" ? 1536 : 384;
     await ensureCollection(vecSize);
 
@@ -125,12 +139,7 @@ async function main() {
                         const point = {
                             id: pid,
                             vector: emb,
-                            payload: {
-                                text: chunks[i],
-                                title,
-                                url: link,
-                                chunk_idx: i,
-                            },
+                            payload: { text: chunks[i], title, url: link, chunk_idx: i },
                         };
                         points.push(point);
 
